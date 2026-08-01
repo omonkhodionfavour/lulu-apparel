@@ -1,5 +1,23 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { PRODUCTS, type Product } from "@/data/products";
+import { getProducts } from "@/services/productService";
+
+export interface Product {
+  id: string;
+  name: string;
+  category: string;
+  price: number;
+  compareAt?: number;
+  image: string;
+  image2?: string;
+  image3?: string;
+  description: string;
+  rating: number;
+  reviews: number;
+  stock: number;
+  bestSeller?: boolean;
+  newArrival?: boolean;
+  specs: { label: string; value: string }[];
+}
 
 export interface CartLine {
   id: string;
@@ -39,11 +57,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<CartLine[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
     setCart(read<CartLine[]>("lulu.cart", []));
     setWishlist(read<string[]>("lulu.wishlist", []));
     setTheme(read<"light" | "dark">("lulu.theme", "light"));
+    getProducts().then((data) => setProducts(data as Product[]));
   }, []);
 
   useEffect(() => {
@@ -60,7 +80,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreValue>(() => {
     const cartProducts = cart
       .map((line) => {
-        const product = PRODUCTS.find((p) => p.id === line.id);
+        const product = products.find((p) => p.id === line.id);
         return product ? { product, qty: line.qty } : null;
       })
       .filter(Boolean) as { product: Product; qty: number }[];
@@ -72,7 +92,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       cartProducts,
       cartCount: cart.reduce((n, l) => n + l.qty, 0),
       cartTotal: cartProducts.reduce((sum, l) => sum + l.product.price * l.qty, 0),
-      wishlistProducts: PRODUCTS.filter((p) => wishlist.includes(p.id)),
+      wishlistProducts: products.filter((p) => wishlist.includes(p.id)),
       addToCart: (id, qty = 1) =>
         setCart((prev) =>
           prev.some((l) => l.id === id)
@@ -90,7 +110,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       isWishlisted: (id) => wishlist.includes(id),
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
     };
-  }, [cart, wishlist, theme]);
+  }, [cart, wishlist, theme, products]);
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

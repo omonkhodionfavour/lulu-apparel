@@ -1,18 +1,23 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Heart, Minus, Plus, Star } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ProductCard } from "@/components/ProductCard";
 import { Button } from "@/components/ui/button";
-import { formatPrice, getProduct, PRODUCTS } from "@/data/products";
+import { formatPrice } from "@/data/products";
+import { getProduct, getProducts } from "@/services/productService";
 import { useStore } from "@/lib/store";
 
 export const Route = createFileRoute("/product/$productId")({
-  loader: ({ params }) => {
-    const product = getProduct(params.productId);
-    if (!product) throw notFound();
-    return { product };
-  },
+ loader: async ({ params }) => {
+  const product = await getProduct(params.productId);
+
+  if (!product) {
+    throw notFound();
+  }
+
+  return { product };
+},
   head: ({ loaderData }) => {
     if (!loaderData) {
       return { meta: [{ title: "Watch not found | Lulu Apparel" }, { name: "robots", content: "noindex" }] };
@@ -34,9 +39,34 @@ function ProductDetail() {
   const { product } = Route.useLoaderData();
   const { addToCart, toggleWishlist, isWishlisted } = useStore();
   const [qty, setQty] = useState(1);
-  const related = PRODUCTS.filter((p) => p.category === product.category && p.id !== product.id).slice(0, 3);
-  const discount = product.compareAt ? Math.round((1 - product.price / product.compareAt) * 100) : 0;
 
+const images = [
+  product.image,
+  product.image2,
+  product.image3,
+].filter(Boolean);
+console.log(product);
+console.log(images);
+const [selectedImage, setSelectedImage] = useState(images[0]); 
+ const [related, setRelated] = useState<any[]>([]);
+  const discount = product.compareAt ? Math.round((1 - product.price / product.compareAt) * 100) : 0;
+useEffect(() => {
+  async function loadRelated() {
+    const products = await getProducts();
+
+    setRelated(
+      products
+        .filter(
+          (p: any) =>
+            p.category === product.category &&
+            p.id !== product.id
+        )
+        .slice(0, 3)
+    );
+  }
+
+  loadRelated();
+}, [product]);
   return (
     <div className="mx-auto max-w-7xl px-5 py-12 lg:px-8">
       <nav className="text-xs text-muted-foreground">
@@ -52,15 +82,39 @@ function ProductDetail() {
       </nav>
 
       <div className="mt-8 grid gap-12 lg:grid-cols-2">
-        <div className="bg-secondary">
+       <div>
+  <div className="bg-secondary">
+    <img
+      src={selectedImage}
+      alt={product.name}
+      width={900}
+      height={1100}
+      className="w-full object-cover"
+    />
+  </div>
+
+  {images.length > 1 && (
+    <div className="mt-4 flex gap-3">
+      {images.map((img) => (
+        <button
+          key={img}
+          onClick={() => setSelectedImage(img)}
+          className={`overflow-hidden border-2 ${
+            selectedImage === img
+              ? "border-gold"
+              : "border-transparent"
+          }`}
+        >
           <img
-            src={product.image}
-            alt={`${product.name} luxury watch by Lulu Apparel`}
-            width={900}
-            height={1100}
-            className="w-full object-cover"
+            src={img}
+            alt={product.name}
+            className="h-24 w-24 object-cover"
           />
-        </div>
+        </button>
+      ))}
+    </div>
+  )}
+</div>
 
         <div>
           <p className="eyebrow">{product.category}</p>
