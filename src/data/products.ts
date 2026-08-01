@@ -20,6 +20,8 @@ export interface Product {
   price: number;
   compareAt?: number;
   image: string;
+image2?: string;
+image3?: string;
   description: string;
   rating: number;
   reviews: number;
@@ -211,6 +213,8 @@ export const PRODUCTS: Product[] = [
 export const getProduct = (id: string) => PRODUCTS.find((p) => p.id === id);
 
 export const formatPrice = (value: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
-    value,
-  );
+  new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(value);
